@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>சித்ரா காபி பார்</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6f4;--card:#fff;--ink:#16302b;--mute:#5f7a73;--brand:#0f3d3e;--acc:#f2a900;--line:#dbe5e1}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Noto Sans Tamil',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:90px}
+header{background:var(--brand);color:#fff;padding:18px 16px 14px}
+header h1{font-size:22px;font-weight:800}
+header p{font-size:13px;opacity:.8;margin-top:2px}
+.table-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px}
+.table-row input{width:70px;padding:8px;border-radius:8px;border:0;font:inherit;font-weight:600;text-align:center}
+nav{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;position:sticky;top:0;background:var(--bg);z-index:5}
+nav button{flex:none;padding:9px 16px;border-radius:99px;border:1.5px solid var(--line);background:var(--card);font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+nav button.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+main{padding:4px 16px;max-width:640px;margin:auto}
+.item{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.item b{font-size:16px;font-weight:600}
+.item small{display:block;color:var(--mute);margin-top:2px}
+.add{padding:8px 18px;border-radius:8px;border:1.5px solid var(--brand);background:#fff;color:var(--brand);font:inherit;font-weight:600;cursor:pointer}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:34px;height:34px;border-radius:8px;border:0;background:var(--brand);color:#fff;font-size:20px;cursor:pointer}
+.qty span{min-width:28px;text-align:center;font-weight:700}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px}
+.bar button{width:100%;max-width:640px;display:flex;justify-content:space-between;margin:auto;padding:14px 18px;border:0;border-radius:12px;background:var(--acc);color:#2a1d00;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.bar button:disabled{background:var(--line);color:var(--mute);cursor:not-allowed}
+.sheet{position:fixed;inset:0;background:rgba(10,25,22,.55);display:none;align-items:flex-end;z-index:10}
+.sheet.show{display:flex}
+.panel{background:var(--card);width:100%;max-width:640px;margin:auto;border-radius:18px 18px 0 0;padding:20px 16px;max-height:85vh;overflow:auto}
+.panel h2{font-size:19px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.total{font-weight:800;font-size:18px;border:0;padding-top:12px}
+.panel .go{margin-top:14px;width:100%;padding:14px;border:0;border-radius:12px;background:var(--brand);color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+.panel .ghost{margin-top:8px;width:100%;padding:12px;border:0;background:none;color:var(--mute);font:inherit;cursor:pointer}
+.token{text-align:center;padding:10px 0}
+.token .id{font-size:54px;font-weight:800;color:var(--brand);letter-spacing:2px;margin:6px 0}
+.token p{color:var(--mute);font-size:14px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>சித்ரா காபி பார்</h1>
+  <p>உங்களுக்கு வேண்டியதை தேர்வு செய்யுங்கள்</p>
+</header>
+
+<nav id="cats" aria-label="வகைகள்"></nav>
+<main id="list"></main>
+
+<div class="bar">
+  <button id="view" disabled><span id="cnt">0 பொருட்கள் / Items</span><span id="sum">₹0</span></button>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+/* ===== இங்கே உங்கள் மெனு & விலையை மாற்றுங்கள் ===== */
+const SHOP_NAME = "சித்ரா காபி பார்";
+const UPI_ID = "arunkeerthip627-1@okaxis";   // உங்கள் UPI ID
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbxitdGfIyuJwqcxq-U8GMwh4cp9BfgcwhEr1EhA6oI_M21PqMTfkjT6QiwL9PpwJwCZ/exec";               // இங்கே உங்கள் Google Apps Script Web App URL ஒட்டவும்
+
+const MENU = {
+  "டீ & காபி": [
+    ["டீ", 20], ["காபி", 25], ["பிளாக் டீ", 25], ["இஞ்சி டீ", 23], ["பூஸ்ட்", 25], ["ஹார்லிக்ஸ்", 25]
+  ],
+  "கூல் டிரிங்ஸ்": [
+    ["லெமன் ஜூஸ்", 25], ["ரோஸ் மில்க்", 40], ["சோடா", 10], ["குளிர்பானம்", 25]
+  ],
+  "ஸ்நாக்ஸ்": [
+    ["சமோசா", 12], ["வடை", 12], ["பஜ்ஜி", 12], ["பிஸ்கட்", 6], ["cake", 25]
+  ],
+  "ஐஸ்கிரீம்": [
+    ["வெனிலா", 30], ["சாக்லேட்", 35], ["ஸ்ட்ராபெரி", 35], ["குல்ஃபி", 40]
+  ]
+};
+/* ============================================== */
+
+const EN = {"டீ": "Tea", "காபி": "Coffee", "பிளாக் டீ": "Black Tea", "இஞ்சி டீ": "Ginger Tea", "பூஸ்ட்": "Boost", "ஹார்லிக்ஸ்": "Horlicks", "லெமன் ஜூஸ்": "Lemon Juice", "ரோஸ் மில்க்": "Rose Milk", "சோடா": "Soda", "குளிர்பானம்": "Cold Drink", "சமோசா": "Samosa", "வடை": "Vada", "பஜ்ஜி": "Bajji", "பிஸ்கட்": "Biscuit", "பப்ஸ்": "Puffs", "வெனிலா": "Vanilla", "சாக்லேட்": "Chocolate", "ஸ்ட்ராபெரி": "Strawberry", "குல்ஃபி": "Kulfi"};
+const CAT_EN = {"டீ & காபி":"Tea & Coffee","கூல் டிரிங்ஸ்":"Cool Drinks","ஸ்நாக்ஸ்":"Snacks","ஐஸ்கிரீம்":"Ice Cream"};
+const nm = n => n + " / " + (EN[n]||"");
+const cart = {};            // {"டீ": 2}
+const price = {};
+Object.values(MENU).flat().forEach(([n, p]) => price[n] = p);
+let current = Object.keys(MENU)[0];
+
+const $ = id => document.getElementById(id);
+
+function drawCats() {
+  $("cats").innerHTML = Object.keys(MENU).map(c =>
+    `<button class="${c === current ? "on" : ""}" data-c="${c}">${c} / ${CAT_EN[c]||""}</button>`).join("");
+}
+function drawItems() {
+  $("list").innerHTML = MENU[current].map(([n, p]) => {
+    const q = cart[n] || 0;
+    const ctl = q
+      ? `<div class="qty"><button data-m="${n}" aria-label="குறை / Remove">−</button><span>${q}</span><button data-p="${n}" aria-label="கூட்டு / Add">+</button></div>`
+      : `<button class="add" data-p="${n}">ஆர்டர் / Order</button>`;
+    return `<div class="item"><div><b>${n}</b><small>${EN[n]||""} • ₹${p}</small>${q ? `<small style="color:#1a8a4a;font-weight:600">✔ ஆர்டர் / Ordered</small>` : ""}</div>${ctl}</div>`;
+  }).join("");
+}
+function totals() {
+  let c = 0, s = 0;
+  for (const n in cart) { c += cart[n]; s += cart[n] * price[n]; }
+  return { c, s };
+}
+function drawBar() {
+  const { c, s } = totals();
+  $("cnt").textContent = c + " பொருட்கள் / Items";
+  $("sum").textContent = "₹" + s;
+  $("view").disabled = c === 0;
+}
+function refresh() { drawItems(); drawBar(); }
+
+$("cats").onclick = e => {
+  const c = e.target.dataset.c; if (!c) return;
+  current = c; drawCats(); drawItems();
+};
+$("list").onclick = e => {
+  const p = e.target.dataset.p, m = e.target.dataset.m;
+  if (p) cart[p] = (cart[p] || 0) + 1;
+  if (m) { cart[m]--; if (!cart[m]) delete cart[m]; }
+  if (p || m) refresh();
+};
+
+function openSheet(html) { $("panel").innerHTML = html; $("sheet").classList.add("show"); }
+function closeSheet() { $("sheet").classList.remove("show"); }
+$("sheet").onclick = e => { if (e.target.id === "sheet") closeSheet(); };
+
+$("view").onclick = () => {
+  const { s } = totals();
+  const rows = Object.keys(cart).map(n =>
+    `<div class="row"><span>${nm(n)} × ${cart[n]}</span><span>₹${cart[n] * price[n]}</span></div>`).join("");
+  openSheet(`<h2>உங்கள் ஆர்டர் / Your Order</h2>${rows}
+    <div class="row total"><span>மொத்தம் / Total</span><span>₹${s}</span></div>
+    <button class="go" id="pay">ஆர்டர் / Order & Pay — ₹${s}</button>
+    <button class="ghost" id="back">மேலும் சேர்க்க</button>`);
+  $("back").onclick = closeSheet;
+  $("pay").onclick = pay;
+};
+
+const PKEY = "pendingOrder";
+const sv = o => { try { localStorage.setItem(PKEY, JSON.stringify(o)); } catch (e) {} };
+const ld = () => { try { return JSON.parse(localStorage.getItem(PKEY) || "null"); } catch (e) { return null; } };
+const clr = () => { try { localStorage.removeItem(PKEY); } catch (e) {} };
+const upiLink = (s, ref) => `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(SHOP_NAME)}&am=${s}&cu=INR&tn=${ref}`;
+const post = b => fetch(SHEET_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(b) }).then(r => r.json());
+let timer = null;
+const stopPoll = () => clearInterval(timer);
+function startPoll() { stopPoll(); timer = setInterval(poll, 3000); poll(); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && ld()) poll(); });
+
+async function poll() {            // கேஷியர் உறுதி செய்தால் மட்டுமே டோக்கன் வரும்
+  const o = ld(); if (!o) return;
+  let r = null; try { r = await post({ action: "status", ref: o.ref }); } catch (e) {}
+  if (!r || !r.ok) return;
+  if (r.status === "PAID_CONFIRMED") {
+    stopPoll(); clr(); for (const n in cart) delete cart[n]; refresh();
+    openSheet(`<div class="token"><h2>பணம் பெறப்பட்டது ✔ / Payment received</h2><p>டோக்கன் ஐடி / Token ID</p>
+      <div class="id">${r.token}</div><p>தொகை: ₹${o.s}</p><p style="font-size:13px;margin-top:6px">Ref: ${o.ref}</p>
+      <p style="margin-top:10px">இந்த டோக்கனை கவுண்டரில் காட்டி ஆர்டரை வாங்கிக்கொள்ளுங்கள்</p><button class="go" id="ok">சரி</button></div>`);
+    $("ok").onclick = closeSheet;
+  } else if (r.status === "REJECTED") {
+    stopPoll(); clr();
+    openSheet(`<div class="token"><h2>பணம் வரவில்லை / Payment not received</h2><p>கவுண்டரில் கேஷியரிடம் கேளுங்கள்.</p><p style="font-size:13px">Ref: ${o.ref}</p><button class="go" id="ok">சரி</button></div>`);
+    $("ok").onclick = closeSheet;
+  }
+}
+
+async function pay() {
+  const { s } = totals();
+  const items = Object.keys(cart).map(n => ({ name: n, qty: cart[n], price: price[n] }));
+  const o = { ref: "CCB" + Date.now().toString(36).toUpperCase(), s, items };
+  const btn = $("pay"); btn.disabled = true;
+  let r = null; try { r = await post({ action: "order", ref: o.ref, amount: s, items }); } catch (e) {}
+  btn.disabled = false;
+  if (!r || !r.ok) { alert("ஆர்டர் அனுப்ப முடியவில்லை. இணையத்தை சரிபார்க்கவும்.\nCould not send order."); return; }
+  sv(o); showWaiting(o); startPoll();
+  location.href = upiLink(s, o.ref);        // GPay / PhonePe / Paytm நேரடியாக திறக்கும்
+}
+
+function showWaiting(o) {
+  openSheet(`<div class="token"><h2>பேமெண்ட் / Payment</h2><div class="id" style="font-size:40px">₹${o.s}</div>
+    <p>UPI ஆப்பில் பணம் செலுத்துங்கள். கவுண்டரில் பணம் வந்ததை உறுதி செய்ததும் உங்கள் டோக்கன் இங்கே தானாக வரும்.</p>
+    <p style="font-size:12px;margin-top:6px">Pay in your UPI app. Your token appears here once the cashier confirms.</p>
+    <p style="font-size:13px;margin-top:6px">Ref: ${o.ref}</p>
+    <button class="ghost" id="again">UPI ஆப்பை மீண்டும் திற / Reopen UPI app</button>
+    <button class="ghost" id="cancel">மூடு / Close</button></div>`);
+  $("again").onclick = () => { location.href = upiLink(o.s, o.ref); };
+  $("cancel").onclick = () => { stopPoll(); clr(); closeSheet(); };
+}
+
+drawCats(); drawItems();
+const pend = ld(); if (pend) { showWaiting(pend); startPoll(); }
+</script>
+</body>
+</html>
